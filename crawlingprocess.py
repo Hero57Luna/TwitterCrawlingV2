@@ -47,6 +47,7 @@ def GetProfile():
             print('Error with code {}'.format(e.api_code))
 
 def GetTweets():
+    reply = []
     try:
         username = input('Enter username: ')
         user = api.get_user(username)
@@ -55,46 +56,28 @@ def GetTweets():
             try:
                 print('Please wait...')
                 for tweets in tweepy.Cursor(api.user_timeline, screen_name = '{}'.format(username), tweet_mode = 'extended').items(int(count)):
-                    tweet_id = tweets.id
+                    tweet_id = tweets.id_str
                     text = tweets.full_text
                     created = tweets.created_at
                     retweet_count = tweets.retweet_count
+                    replies_count = tweets.in_reply_to_status_id
                     likes_count = tweets.favorite_count
+                    for replies in tweepy.Cursor(api.search, q='to:{}'.format(username), result_type='recent').items(100):
+                        if(replies.in_reply_to_status_id_str == tweet_id):
+                            reply.append(replies.text)
                     print('==========================================')
                     print('ID: {}'.format(tweet_id))
                     print('Tweets: {}'.format(text))
                     print('Retweet count: {}'.format(retweet_count))
                     print('Likes count: {}'.format(likes_count))
+                    print('Replies: {}'.format(reply))
                     print('Date created: {}'.format(created))
                     print('==========================================')
-                    print(dir(tweets))
             except ValueError:
                 print('Invalid input')
     except tweepy.TweepError as e:
         if e.api_code == 50:
             print('User not found')
-    # try:
-    #     username = input('Enter username: ')
-    #     try:
-    #         count = input('How many data do you want to extract? ')
-    #         print('Please wait...')
-    #         for tweets in tweepy.Cursor(api.user_timeline, screen_name = '{}'.format(username), tweet_mode = 'extended').items(int(count)):
-    #             tweet_id = tweets.id
-    #             text = tweets.full_text
-    #             created = tweets.created_at
-    #             print('==========================================')
-    #             print('ID: {}'.format(tweet_id))
-    #             print('Tweets: {}'.format(text))
-    #             print('Date created: {}'.format(created))
-    #             print('==========================================')
-    #     except ValueError:
-    #         print('Invalid input')
-    # except tweepy.TweepError as e:
-    #     if e.api_code == 50:
-    #         print('User not found')
-    #     else:
-    #         print('Error with code {}'.format(e.api_code))
-
 
 def main():
     menu = ConsoleMenu("Twitter Data Crawling", "You are now in the main menu")
