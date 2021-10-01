@@ -21,6 +21,8 @@ api = tweepy.API(auth)
 
 saved_file_location = []  # dir for where the file will be saved
 result = {}  # for json file
+profile = {}
+final = {}
 
 # function for generating target profile info
 def GetProfile():
@@ -97,6 +99,13 @@ def GetTweets():
                         print('Date created: {}'.format(created))
                         print('==========================================')
                 elif save_directory == 'y':
+                    user = api.get_user(username)
+                    followers = user.followers_count
+                    following = user.friends_count
+                    name = user.name
+                    desc = user.description
+                    locaton = user.location
+                    screen_name = user.screen_name
                     for tweets in tweepy.Cursor(api.user_timeline, screen_name='{}'.format(username), tweet_mode='extended').items(int(count)):
                         tweet_id = tweets.id_str
                         text = tweets.full_text
@@ -104,14 +113,26 @@ def GetTweets():
                         retweet_count = tweets.retweet_count
                         # replies_count = tweets.in_reply_to_status_id
                         likes_count = tweets.favorite_count
+
                         result[tweet_id] = {
-                            'Status' : text,
+                            'Text' : text,
                             'Retweet count' : retweet_count,
                             'Likes count' : likes_count,
                             'Date created' : str(created)
                         }
+
+                    profile = {
+                        'Name': name,
+                        'Screen name': screen_name,
+                        'Description': desc,
+                        'Location': locaton,
+                        'Followers': followers,
+                        'Following': following,
+                        'Status': result
+                    }
+
                     with open('{}/result.json'.format(saved_file_location[0]), 'w') as f:
-                        json.dump(result, f, indent=3)
+                        json.dump(profile, f, indent=4)
                 end = time.time()
                 execution_time = end - start
                 print('Done in {}'.format(execution_time))
