@@ -1,12 +1,8 @@
-import pandas as pd
 import json
 import time
-from tkinter import *
 import tweepy
 from consolemenu import *
 from consolemenu.items import *
-from tkinter import filedialog
-import os
 
 # credentials to grant user access to twitter API
 consumer_key = "OIpYHLyMhNyh2bMB0YGVwrix4"
@@ -65,8 +61,7 @@ def GetTweets():
             print('Found!')
             save_directory = input('Save to local? y/n ')
             if save_directory == 'y':
-                OpenDirectoryDialog()
-                print('The file will be saved to {}/result.json'.format(saved_file_location[0]))
+                print('The file will be save with name result.json')
             elif save_directory == 'n':
                 print('not saved to local')
             else:
@@ -74,7 +69,6 @@ def GetTweets():
                     print('please enter valid input')
                     save_directory = input('Save to local? y/n ')
                     if save_directory == 'y':
-                        OpenDirectoryDialog()
                         print('The file will be saved to {}/result.json'.format(saved_file_location[0]))
                     elif save_directory == 'n':
                         print('not saved to local')
@@ -135,7 +129,7 @@ def GetTweets():
                         'Status': result
                     }
 
-                    with open('{}/result.json'.format(saved_file_location[0]), 'w') as f:
+                    with open('result.json', 'w') as f:
                         json.dump(profile, f, indent=4)
                 end = time.time()
                 execution_time = end - start
@@ -187,12 +181,12 @@ def GetTweetsReplies():
     print('Total replies is {} replies'.format(len(reply)))
 
 
-def OpenDirectoryDialog():
-    root = Tk()  # pointing root to Tk() to use it as Tk() in program.
-    root.withdraw()  # Hides small tkinter window
-    root.attributes('-topmost', True)  # Opened windows will be active. above all windows despite of selection.
-    open_file = filedialog.askdirectory()  # Returns opened path as str
-    saved_file_location.append(open_file)
+# def OpenDirectoryDialog():
+#     root = Tk()  # pointing root to Tk() to use it as Tk() in program.
+#     root.withdraw()  # Hides small tkinter window
+#     root.attributes('-topmost', True)  # Opened windows will be active. above all windows despite of selection.
+#     open_file = filedialog.askdirectory()  # Returns opened path as str
+#     saved_file_location.append(open_file)
 
 
 def main():
