@@ -39,17 +39,20 @@ def GetProfile():
         print('The user you are looking for has the following:')
         print('===================================================')
         print('Name \t\t\t : {}'.format(name))
-        print('Screen name \t : {}'.format(screen_name))
-        print('Description \t : {}'.format(desc))
+        print('Screen name \t\t : {}'.format(screen_name))
+        print('Description \t\t : {}'.format(desc))
         print('Location \t\t : {}'.format(locaton))
         print('Followers \t\t : {}'.format(follower))
         print('Following \t\t : {}'.format(following))
         print('===================================================')
+        input('Press Enter to continue ')
     except tweepy.TweepError as e:
         if e.api_code == 50:
             print('User not found')
+            input('Press Enter to continue ')
         else:
             print('Error with code {}'.format(e.api_code))
+            input('Press Enter to continue ')
 
 # getting tweets from target
 def GetTweets():
@@ -98,6 +101,7 @@ def GetTweets():
                         print('Likes count: {}'.format(likes_count))
                         print('Date created: {}'.format(created))
                         print('==========================================')
+                    input('Press Enter to continue ')
                 elif save_directory == 'y':
                     user = api.get_user(username)
                     followers = user.followers_count
@@ -135,13 +139,35 @@ def GetTweets():
                         json.dump(profile, f, indent=4)
                 end = time.time()
                 execution_time = end - start
-                print('Done in {}'.format(execution_time))
+                print('Done in {} s'.format(round(execution_time, 2)))
+                input('Press Enter to continue ')
             except ValueError:
                 print('Invalid input')
+                input('Press Enter to continue ')
     except tweepy.TweepError as e:
         if e.api_code == 50:
             print('User not found')
+            input('Press Enter to continue ')
 
+def GetTags():
+    tags = input('Enter tags: ')
+    #  date = input('Since yyyy-mm-dd: ')
+    for tweet in tweepy.Cursor(api.search, q="{}".format(tags), since='2020-01-01', count=100).items(100):
+        Tweet = tweet.text
+        User = tweet.user.name
+        Tanggal = tweet.created_at
+        print('=============================')
+        print('Tweet : {}'.format(Tweet))
+        print('User : {}'.format(User))
+        print('Created at : {}'.format(Tanggal))
+        print('=============================')
+    #     csvWriter.writerow([Tanggal, Tweet.encode('utf-8'), User])
+    # csvWriter = csv.writer(csvFile)
+    # csvFile.close()
+
+def Tags():
+    for i in range(0, 10):
+        print(i)
 
 def GetTweetsReplies():
     username = input('Enter username: ')
@@ -174,12 +200,15 @@ def main():
 
     get_profile = FunctionItem("About profile", GetProfile)
     get_tweets = FunctionItem("Get tweets", GetTweets)
+    get_tags = FunctionItem("Get tags", GetTags)
 
     menu.append_item(get_profile)
     menu.append_item(get_tweets)
+    menu.append_item(get_tags)
 
 
     menu.show()
+
 
 
 if __name__ == '__main__':
