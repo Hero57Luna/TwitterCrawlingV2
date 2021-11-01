@@ -5,8 +5,8 @@ import csv
 mydb = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="w9AuxZSTY9Eh5dfg",
-    database="kultura"
+    password="",
+    database="twitter_post"
 )
 
 mycursor = mydb.cursor()

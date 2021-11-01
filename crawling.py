@@ -1,7 +1,17 @@
 import json
 import time
 import tweepy
+import mysql.connector
 import argparse
+
+mydb = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="w9AuxZSTY9Eh5dfg",
+    database="kultura"
+)
+
+mycursor = mydb.cursor()
 
 consumer_key = "OIpYHLyMhNyh2bMB0YGVwrix4"
 consumer_key_secret = "NNbadTOk0a51liZXyBUkegFBXt0UnT5Mut6nWO2OsErkjfQ2TP"
@@ -28,7 +38,7 @@ def get_tweets(username, count):
         user = api.get_user(username)
         followers = user.followers_count
         following = user.friends_count
-        name = user.name
+        name = user.screen_name
         desc = user.description
         locaton = user.location
         screen_name = user.screen_name
@@ -46,6 +56,12 @@ def get_tweets(username, count):
                 'Likes count': likes_count,
                 'Date created': str(created)
             }
+
+            insert_into_posts = "INSERT INTO twitter_post (screen_name, status_id, status_text, status_retweet_count, status_likes_count, status_created) VALUES (%s, %s, %s, %s, %s, %s)"
+            value_posts = (name, tweet_id, text, retweet_count, likes_count, str(created))
+            mycursor.execute(insert_into_posts, value_posts)
+            mydb.commit()
+
         profile = {
             'Name': name,
             'Screen name': screen_name,
@@ -62,12 +78,29 @@ def get_tweets(username, count):
         with open('result.json', 'w') as f:
             return f.write(json_result)
 
-
     except tweepy.TweepError as e:
         if e.api_code == 50:
             print('User not found')
             input('Press Enter to continue ')
 
+def get_profile(username):
+    user = api.get_user(username)
+    followers = user.followers_count
+    following = user.friends_count
+    name = user.name
+    desc = user.description
+    location = user.location
+    screen_name = user.screen_name
+
+    insert_into_profile = "INSERT INTO twitter_profile (screen_name, name, description, location, followers, following) VALUES (%s, %s, %s, %s, %s, %s)"
+    value_profile = (screen_name, name, desc, location, followers, following)
+    mycursor.execute(insert_into_profile, value_profile)
+    mydb.commit()
+
+def main(username, count):
+    get_tweets(username=username, count=count)
+    get_profile(username=username)
+
 
 if __name__ == '__main__':
-    get_tweets(args.username, args.count)
+    main(args.username, args.count)
