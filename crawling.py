@@ -92,7 +92,7 @@ def get_profile(username):
     location = user.location
     screen_name = user.screen_name
 
-    insert_into_profile = "INSERT INTO twitter_profile (screen_name, name, description, location, followers, following) VALUES (%s, %s, %s, %s, %s, %s)"
+    insert_into_profile = "INSERT IGNORE INTO twitter_profile (screen_name, name, description, location, followers, following) VALUES (%s, %s, %s, %s, %s, %s)"
     value_profile = (screen_name, name, desc, location, followers, following)
     mycursor.execute(insert_into_profile, value_profile)
     mydb.commit()
