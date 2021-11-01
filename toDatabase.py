@@ -67,7 +67,24 @@ def generatePostToCSV():
         mydb.commit()
         print(tweet_id)
 
+def get_tweets_replies():
+    name = 'jokowi'
+    tweet_id = '1454981763982192641'
+
+    replies = []
+    for tweet in tweepy.Cursor(api.search, q='to:' + name, wait_on_rate_limit=True, wait_on_rate_limit_notify=True).items():
+        if hasattr(tweet, 'in_reply_to_status_id_str'):
+            if (tweet.in_reply_to_status_id_str == tweet_id):
+                replies.append(tweet)
+
+    with open('replies_clean.csv', 'w', encoding='UTF-8') as f:
+        csv_writer = csv.DictWriter(f, fieldnames=('user', 'text'))
+        csv_writer.writeheader()
+        for tweet in replies:
+            row = {'user': tweet.user.screen_name, 'text': tweet.text.replace('\n', ' ')}
+            csv_writer.writerow(row)
+
 if __name__ == "__main__":
     # generateToCSV()
     # generatePostToCSV()
-    print(mydb)
+    get_tweets_replies()

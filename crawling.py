@@ -3,6 +3,7 @@ import time
 import tweepy
 import mysql.connector
 import argparse
+import csv
 
 mydb = mysql.connector.connect(
     host="localhost",
@@ -96,6 +97,23 @@ def get_profile(username):
     value_profile = (screen_name, name, desc, location, followers, following)
     mycursor.execute(insert_into_profile, value_profile)
     mydb.commit()
+
+def get_tweets_replies():
+    name = 'jokowi'
+    tweet_id = '1454981763982192641'
+
+    replies = []
+    for tweet in tweepy.Cursor(api.search, q='to:' + name, result_type='recent', timeout=999999).items():
+        if hasattr(tweet, 'in_reply_to_status_id_str'):
+            if (tweet.in_reply_to_status_id_str == tweet_id):
+                replies.append(tweet)
+
+    with open('replies_clean.csv', 'w') as f:
+        csv_writer = csv.DictWriter(f, fieldnames=('user', 'text'))
+        csv_writer.writeheader()
+        for tweet in replies:
+            row = {'user': tweet.user.screen_name, 'text': tweet.text.replace('\n', ' ')}
+            csv_writer.writerow(row)
 
 def main(username, count):
     get_tweets(username=username, count=count)
