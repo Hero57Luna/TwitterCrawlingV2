@@ -46,7 +46,7 @@ def get_tweets(username, count):
         for tweets in tweepy.Cursor(api.user_timeline, screen_name=username, tweet_mode='extended').items(int(count)):
             tweet_id = tweets.id_str
             text = tweets.full_text
-            created = tweets.retweet_count
+            created = tweets.created_at
             retweet_count = tweets.retweet_count
             likes_count = tweets.favorite_count
 
