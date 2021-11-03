@@ -41,7 +41,7 @@ def get_tweets(username, count):
         following = user.friends_count
         name = user.screen_name
         desc = user.description
-        locaton = user.location
+        location = user.location
         screen_name = user.screen_name
 
         for tweets in tweepy.Cursor(api.user_timeline, screen_name=username, tweet_mode='extended').items(int(count)):
@@ -63,17 +63,17 @@ def get_tweets(username, count):
             mycursor.execute(insert_into_posts, value_posts)
             mydb.commit()
 
-        profile = {
+        profile_output = {
             'Name': name,
             'Screen name': screen_name,
             'Description': desc,
-            'Location': locaton,
+            'Location': location,
             'Followers': followers,
             'Following': following,
             'Status': result
         }
 
-        json_result = json.dumps(profile, indent=4)
+        json_result = json.dumps(profile_output, indent=4)
 
         print('Done')
         with open('result.json', 'w') as f:
@@ -83,6 +83,7 @@ def get_tweets(username, count):
         if e.api_code == 50:
             print('User not found')
             input('Press Enter to continue ')
+
 
 def get_profile(username):
     user = api.get_user(username)
@@ -98,6 +99,8 @@ def get_profile(username):
     mycursor.execute(insert_into_profile, value_profile)
     mydb.commit()
 
+
+#  the function below are still work in progress
 def get_tweets_replies():
     name = 'jokowi'
     tweet_id = '1454981763982192641'
@@ -115,10 +118,19 @@ def get_tweets_replies():
             row = {'user': tweet.user.screen_name, 'text': tweet.text.replace('\n', ' ')}
             csv_writer.writerow(row)
 
+
+def get_hashtags():
+    for tweet in tweepy.Cursor(api.search, q="#gajayanmemanggil", count=100,
+                               lang="en",
+                               since="2017-04-03").items():
+        print(tweet.created_at, tweet.text)
+
+
 def main(username, count):
     get_tweets(username=username, count=count)
     get_profile(username=username)
 
 
 if __name__ == '__main__':
-    main(args.username, args.count)
+    #  main(args.username, args.count)
+    get_hashtags()
