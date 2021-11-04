@@ -1,11 +1,7 @@
 import csv
-import time
-import pandas as pd
 import mysql.connector
 import tweepy
 from TwitterAPI import TwitterAPI, TwitterOAuth, TwitterRequestError, TwitterConnectionError, TwitterPager
-
-from TreeNode import TreeNode
 
 mydb = mysql.connector.connect(
     host="localhost",
@@ -17,12 +13,13 @@ mydb = mysql.connector.connect(
 mycursor = mydb.cursor()
 
 tweet_result = {}
+replies_result = []
 
 # credentials to grant user access to twitter API
-consumer_key = "OIpYHLyMhNyh2bMB0YGVwrix4"
-consumer_key_secret = "NNbadTOk0a51liZXyBUkegFBXt0UnT5Mut6nWO2OsErkjfQ2TP"
-access_token = "1438047431594176514-7ppLrU5d7yXbxWx078p8ph8di5bguZ"
-access_token_secret = "17g1vECj8AEnf2XmI4y2rB2NUR8jxJ7VRehTGZVXHWYOW"
+consumer_key = "63WpEbrK3zrblLMKFORcjygvJ"
+consumer_key_secret = "5mhAij5jbkcnmwa6Q0tNz0Jf2Xp6fhiQ4FTrE5j55nNmfcjIm9"
+access_token = "1456092689418514433-mviRAFruatdVhtGfeDK84SH6VORJTC"
+access_token_secret = "v36I2cY9NCvrDsdfvarBSl1OC7eV0QcflLTtCOjgzOpgR"
 
 # authorization process
 auth = tweepy.OAuthHandler(consumer_key, consumer_key_secret)
@@ -32,129 +29,7 @@ api = tweepy.API(auth)
 api_twitter_api = TwitterAPI(consumer_key, consumer_key_secret, access_token, access_token_secret, api_version='2')
 
 names = ["raisa6690"]
-conv_id = ["1455710059875368963"]
-
-
-def get_new_tweets(names):
-    print("Retrieving tweets")
-    corpus = []
-    for name in names:
-        tweets = api.user_timeline(name, include_rts=False, count=10, tweet_mode="extended")
-        time.sleep(4)
-        corpus.extend(tweets)
-    data = [[tweet.id_str, tweet.user.screen_name, tweet.full_text, tweet.created_at] for tweet in corpus]
-    tweets = pd.DataFrame(data, columns=['tweet_id', 'screen_name', 'text', 'timestamp'])
-    print(tweets.head)
-    return tweets
-
-
-def add_data(tweets):
-    print("Retrieving additional data")
-    ids = tweets.tweet_id
-    conv_ids = []
-    for id in ids:
-
-        TWEET_ID = id
-        TWEET_FIELDS = 'conversation_id'
-
-        try:
-            r = api_twitter_api.request(f'tweets/:{TWEET_ID}', {'tweet.fields': TWEET_FIELDS})
-
-            for item in r:
-                conv_ids.append(item['conversation_id'])
-
-
-        except TwitterRequestError as e:
-            print(e.status_code)
-            for msg in iter(e):
-                print(msg)
-
-        except TwitterConnectionError as e:
-            print(e)
-
-        except Exception as e:
-            print(e)
-
-    tweets['conversation_id'] = conv_ids
-    print(tweets)
-    return tweets
-
-
-def retrieve_replies(conversation_id):
-    global root
-    try:
-        # GET ROOT OF THE CONVERSATION
-        r = api_twitter_api.request(f'tweets/:{conversation_id}',
-                                    {
-                                        'tweet.fields': 'author_id,conversation_id,created_at,in_reply_to_user_id'
-                                    })
-
-        for item in r:
-            root = TreeNode(item)
-            # print(f'ROOT {root.id()}')
-
-        # GET ALL REPLIES IN CONVERSATION
-
-        pager = TwitterPager(api_twitter_api, 'tweets/search/recent',
-                             {
-                                 'query': f'conversation_id:{conversation_id}',
-                                 'tweet.fields': 'author_id,conversation_id,created_at,in_reply_to_user_id'
-                             })
-
-        orphans = []
-
-        for item in pager.get_iterator(wait=2):
-            node = TreeNode(item)
-            # print(f'{node.id()} => {node.reply_to()}')
-            # COLLECT ANY ORPHANS THAT ARE NODE'S CHILD
-            orphans = [orphan for orphan in orphans if not node.find_parent_of(orphan)]
-            # IF NODE CANNOT BE PLACED IN TREE, ORPHAN IT UNTIL ITS PARENT IS FOUND
-            if not root.find_parent_of(node):
-                orphans.append(node)
-
-        conv_id, child_id, text = root.list_l1()
-        #         print('\nTREE...')
-        # 	    root.print_tree(0)
-
-        assert len(orphans) == 0, f'{len(orphans)} orphaned tweets'
-
-    except TwitterRequestError as e:
-        print(e.status_code)
-        for msg in iter(e):
-            print(msg)
-
-    except TwitterConnectionError as e:
-        print(e)
-
-    except Exception as e:
-        print(e)
-
-    return conv_id, child_id, text
-
-
-"""
-Retrieves replies for a list of conversation ids (conv_ids
-Returns a dataframe with columns [conv_id, child_id, text] tuple which shows every reply's tweet_id and text in the last two columns
-"""
-
-
-def reply_thread_maker(conv_ids):
-    conv_id = []
-    child_id = []
-    text = []
-    for id in conv_ids:
-        conv_id1, child_id1, text1 = retrieve_replies(id)
-        conv_id.extend(conv_id1)
-        child_id.extend(child_id1)
-        text.extend(text1)
-
-    replies_data = {'conversation_id': conv_id,
-                    'child_tweet_id': child_id,
-                    'tweet_text': text}
-
-    replies = pd.DataFrame(replies_data)
-    print(replies)
-    return replies
+conv_id = ["1455498487987015682"]
 
 
 def generateToCSV():
@@ -200,30 +75,44 @@ def generatePostToCSV():
         print(tweet_id)
 
 
-def get_tweets_replies():
-    name = 'raisa6690'
-    tweet_id = '1401358780449783813'
+def get_tweets_replies(conversation_id):
+    convo_id = []
+    try:
+        pager = TwitterPager(api_twitter_api, 'tweets/search/recent',
+                             {'query': f'conversation_id:{conversation_id}', 'tweet.fields': 'conversation_id'})
+        print("Retrieving replies...")
+        for page in pager.get_iterator(wait=5):
+            convo_id.append(page['id'])
+        print("Done")
 
-    replies = []
-    for tweet in tweepy.Cursor(api.search, q='to:' + name, wait_on_rate_limit=True,
-                               wait_on_rate_limit_notify=True).items():
-        if hasattr(tweet, 'in_reply_to_status_id_str'):
-            if tweet.in_reply_to_status_id_str == tweet_id:
-                replies.append(tweet)
+        print("Inserting to db")
+        for reply_result in convo_id:
+            str_conv_id = str(conversation_id)
+            str_reply_result = str(reply_result)
+            screen_name = api.get_status(conversation_id)
+            screen_name_user = screen_name.user.screen_name
+            user = api.get_status(reply_result)
+            name = user.user.screen_name
+            text = user.text
+            date = user.created_at
 
-    for result in replies:
-        print('========================')
-        print(result.text)
-        print('========================')
+            sql = "INSERT INTO replies (screen_name, tweet_id, replies_id, replies_text, reply_by, date_created) VALUES (%s, %s, %s, %s, %s, %s)"
+            val = (screen_name_user, str_conv_id, str_reply_result, text, name, str(date))
+            mycursor.execute(sql, val)
+            mydb.commit()
+        print("Done")
 
-    print("total: " + str(len(replies)))
 
-    # with open('replies_clean.csv', 'w', encoding='UTF-8') as f:
-    #     csv_writer = csv.DictWriter(f, fieldnames=('user', 'text'))
-    #     csv_writer.writeheader()
-    #     for tweet in replies:
-    #         row = {'user': tweet.user.screen_name, 'text': tweet.text.replace('\n', ' ')}
-    #         csv_writer.writerow(row)
+    except TwitterRequestError as e:
+        print(e.status_code)
+        for msg in iter(e):
+            print(msg)
+
+    except TwitterConnectionError as e:
+        print(e)
+
+    except Exception as e:
+        print(e)
 
 
 def update_urls(tweet, api, urls):
@@ -275,9 +164,11 @@ def get_hashtags():
 
 
 if __name__ == "__main__":
-    add_data(get_new_tweets(names))
-    #replies = reply_thread_maker(conv_id)
-    #replies.to_csv("replies.csv")
+    get_tweets_replies("1455498487987015682")
+    # replies = reply_thread_maker(conv_id)
+    # replies.to_csv("replies.csv")
+    # replies = retrieve_replies("1455498487987015682")
+    # print(replies)
     # replies.head()
     # get_new_tweets(names)
     # get_hashtags()

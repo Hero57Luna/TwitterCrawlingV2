@@ -4,6 +4,7 @@ import tweepy
 import mysql.connector
 import argparse
 import csv
+from TwitterAPI import TwitterAPI, TwitterOAuth, TwitterRequestError, TwitterConnectionError, TwitterPager
 
 mydb = mysql.connector.connect(
     host="localhost",
@@ -14,14 +15,16 @@ mydb = mysql.connector.connect(
 
 mycursor = mydb.cursor()
 
-consumer_key = "OIpYHLyMhNyh2bMB0YGVwrix4"
-consumer_key_secret = "NNbadTOk0a51liZXyBUkegFBXt0UnT5Mut6nWO2OsErkjfQ2TP"
-access_token = "1438047431594176514-7ppLrU5d7yXbxWx078p8ph8di5bguZ"
-access_token_secret = "17g1vECj8AEnf2XmI4y2rB2NUR8jxJ7VRehTGZVXHWYOW"
+consumer_key = "63WpEbrK3zrblLMKFORcjygvJ"
+consumer_key_secret = "5mhAij5jbkcnmwa6Q0tNz0Jf2Xp6fhiQ4FTrE5j55nNmfcjIm9"
+access_token = "1456092689418514433-mviRAFruatdVhtGfeDK84SH6VORJTC"
+access_token_secret = "v36I2cY9NCvrDsdfvarBSl1OC7eV0QcflLTtCOjgzOpgR"
 
 auth = tweepy.OAuthHandler(consumer_key, consumer_key_secret)
 auth.set_access_token(access_token, access_token_secret)
 api = tweepy.API(auth)
+
+api_twitter_api = TwitterAPI(consumer_key, consumer_key_secret, access_token, access_token_secret, api_version='2')
 
 result = {}
 profile = {}
