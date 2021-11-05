@@ -1,9 +1,8 @@
 import json
-import time
 import tweepy
 import mysql.connector
+import sys
 import argparse
-import csv
 from TwitterAPI import TwitterAPI, TwitterOAuth, TwitterRequestError, TwitterConnectionError, TwitterPager
 
 mydb = mysql.connector.connect(
@@ -31,8 +30,11 @@ profile = {}
 final = {}
 
 parser = argparse.ArgumentParser(description='Get tweets from selected user')
-parser.add_argument('-u', '--username', type=str, help='Target username', required=True)
-parser.add_argument('-c', '--count', type=int, help='Amount of tweets to be crawled', required=True)
+parser.add_argument('-u', '--username', help='Target username', required='-p' in sys.argv, type=str)
+parser.add_argument('-c', '--count', help='Amount of tweets to be crawled', required='-p' in sys.argv, type=int)
+parser.add_argument('-r', '--replies', help='Get replies based on tweet id', action='store_true')
+parser.add_argument('-i', '--id', help='Tweet id', type=str, required='-r' in sys.argv)
+parser.add_argument('-p', '--post', help='Get post', action='store_true')
 args = parser.parse_args()
 
 
@@ -104,22 +106,44 @@ def get_profile(username):
 
 
 #  the function below are still work in progress
-def get_tweets_replies():
-    name = 'jokowi'
-    tweet_id = '1454981763982192641'
+def get_tweets_replies(conversation_id):
+    convo_id = []
+    try:
+        pager = TwitterPager(api_twitter_api, 'tweets/search/recent',
+                             {'query': f'conversation_id:{conversation_id}', 'tweet.fields': 'conversation_id'})
+        print("Retrieving replies...")
+        for page in pager.get_iterator(wait=5):
+            convo_id.append(page['id'])
+        print("Done")
 
-    replies = []
-    for tweet in tweepy.Cursor(api.search, q='to:' + name, result_type='recent', timeout=999999).items():
-        if hasattr(tweet, 'in_reply_to_status_id_str'):
-            if (tweet.in_reply_to_status_id_str == tweet_id):
-                replies.append(tweet)
+        print("Inserting to database...")
+        for reply_result in convo_id:
+            str_conv_id = str(conversation_id)
+            str_reply_result = str(reply_result)
+            screen_name = api.get_status(conversation_id)
+            screen_name_user = screen_name.user.screen_name
+            user = api.get_status(reply_result)
+            name = user.user.screen_name
+            text = user.text
+            date = user.created_at
 
-    with open('replies_clean.csv', 'w') as f:
-        csv_writer = csv.DictWriter(f, fieldnames=('user', 'text'))
-        csv_writer.writeheader()
-        for tweet in replies:
-            row = {'user': tweet.user.screen_name, 'text': tweet.text.replace('\n', ' ')}
-            csv_writer.writerow(row)
+            sql = "INSERT INTO replies (screen_name, tweet_id, replies_id, replies_text, reply_by, date_created) VALUES (%s, %s, %s, %s, %s, %s)"
+            val = (screen_name_user, str_conv_id, str_reply_result, text, name, str(date))
+            mycursor.execute(sql, val)
+            mydb.commit()
+        print("Done")
+
+
+    except TwitterRequestError as e:
+        print(e.status_code)
+        for msg in iter(e):
+            print(msg)
+
+    except TwitterConnectionError as e:
+        print(e)
+
+    except Exception as e:
+        print(e)
 
 
 def get_hashtags():
@@ -129,11 +153,15 @@ def get_hashtags():
         print(tweet.created_at, tweet.text)
 
 
-def main(username, count):
-    get_tweets(username=username, count=count)
-    get_profile(username=username)
+def main(username, count, tweet_id):
+    get_tweets_replies(tweet_id)
+    get_tweets(username, count)
 
 
 if __name__ == '__main__':
-    #  main(args.username, args.count)
-    get_hashtags()
+    if not len(sys.argv) > 1:
+        print("Please provide argument")
+
+    else:
+        get_tweets(args.username, args.count)
+        get_tweets_replies(args.id)

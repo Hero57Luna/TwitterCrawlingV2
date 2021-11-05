@@ -1,6 +1,7 @@
 import csv
 import mysql.connector
 import tweepy
+import argparse
 from TwitterAPI import TwitterAPI, TwitterOAuth, TwitterRequestError, TwitterConnectionError, TwitterPager
 
 mydb = mysql.connector.connect(
@@ -85,7 +86,7 @@ def get_tweets_replies(conversation_id):
             convo_id.append(page['id'])
         print("Done")
 
-        print("Inserting to db")
+        print("Inserting to database...")
         for reply_result in convo_id:
             str_conv_id = str(conversation_id)
             str_reply_result = str(reply_result)
