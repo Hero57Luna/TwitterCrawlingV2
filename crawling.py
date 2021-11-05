@@ -41,7 +41,7 @@ args = parser.parse_args()
 def get_tweets(username, count):
     try:
         print('Processing...')
-        user = api.get_user(username)
+        user = api.get_user(screen_name=username)
         followers = user.followers_count
         following = user.friends_count
         name = user.screen_name
@@ -91,7 +91,7 @@ def get_tweets(username, count):
 
 
 def get_profile(username):
-    user = api.get_user(username)
+    user = api.get_user(screen_name=username)
     followers = user.followers_count
     following = user.friends_count
     name = user.name
