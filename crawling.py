@@ -84,8 +84,8 @@ def get_tweets(username, count):
         with open('result.json', 'w') as f:
             return f.write(json_result)
 
-    except tweepy.TweepError as e:
-        if e.api_code == 50:
+    except ValueError as e:
+        if e == 50:
             print('User not found')
             input('Press Enter to continue ')
 
