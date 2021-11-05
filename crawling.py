@@ -127,7 +127,7 @@ def get_tweets_replies(conversation_id):
             text = user.text
             date = user.created_at
 
-            sql = "INSERT INTO replies (screen_name, tweet_id, replies_id, replies_text, reply_by, date_created) VALUES (%s, %s, %s, %s, %s, %s)"
+            sql = "INSERT INTO twitter_replies (screen_name, tweet_id, replies_id, replies_text, reply_by, date_created) VALUES (%s, %s, %s, %s, %s, %s)"
             val = (screen_name_user, str_conv_id, str_reply_result, text, name, str(date))
             mycursor.execute(sql, val)
             mydb.commit()
