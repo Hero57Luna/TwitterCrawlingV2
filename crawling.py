@@ -5,11 +5,18 @@ import sys
 import argparse
 from TwitterAPI import TwitterAPI, TwitterOAuth, TwitterRequestError, TwitterConnectionError, TwitterPager
 
+# mydb = mysql.connector.connect(
+#     host="localhost",
+#     user="root",
+#     password="w9AuxZSTY9Eh5dfg",
+#     database="kultura"
+# )
+
 mydb = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="w9AuxZSTY9Eh5dfg",
-    database="kultura"
+    password="",
+    database="twitter_post"
 )
 
 mycursor = mydb.cursor()
@@ -153,15 +160,10 @@ def get_hashtags():
         print(tweet.created_at, tweet.text)
 
 
-def main(username, count, tweet_id):
-    get_tweets_replies(tweet_id)
-    get_tweets(username, count)
-
-
 if __name__ == '__main__':
     if not len(sys.argv) > 1:
         print("Please provide argument")
-
     else:
+        get_profile(args.username)
         get_tweets(args.username, args.count)
         get_tweets_replies(args.id)
