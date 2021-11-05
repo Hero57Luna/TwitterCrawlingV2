@@ -5,18 +5,11 @@ import sys
 import argparse
 from TwitterAPI import TwitterAPI, TwitterOAuth, TwitterRequestError, TwitterConnectionError, TwitterPager
 
-# mydb = mysql.connector.connect(
-#     host="localhost",
-#     user="root",
-#     password="w9AuxZSTY9Eh5dfg",
-#     database="kultura"
-# )
-
 mydb = mysql.connector.connect(
     host="localhost",
     user="root",
-    password="",
-    database="twitter_post"
+    password="w9AuxZSTY9Eh5dfg",
+    database="kultura"
 )
 
 mycursor = mydb.cursor()
