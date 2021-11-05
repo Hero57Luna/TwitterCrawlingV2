@@ -154,9 +154,11 @@ def get_hashtags():
 
 
 if __name__ == '__main__':
-    if not len(sys.argv) > 1:
-        print("Please provide argument")
+    if len(sys.argv) > 1:
+        if args.replies and args.id:
+            get_tweets_replies(args.id)
+        elif args.post and args.username:
+            get_profile(args.username)
+            get_tweets(args.username, args.count)
     else:
-        get_profile(args.username)
-        get_tweets(args.username, args.count)
-        get_tweets_replies(args.id)
+        print("Cannot empty")

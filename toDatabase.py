@@ -1,6 +1,7 @@
-import csv
-import mysql.connector
+import json
 import tweepy
+import mysql.connector
+import sys
 import argparse
 from TwitterAPI import TwitterAPI, TwitterOAuth, TwitterRequestError, TwitterConnectionError, TwitterPager
 
@@ -13,69 +14,98 @@ mydb = mysql.connector.connect(
 
 mycursor = mydb.cursor()
 
-tweet_result = {}
-replies_result = []
-
-# credentials to grant user access to twitter API
 consumer_key = "63WpEbrK3zrblLMKFORcjygvJ"
 consumer_key_secret = "5mhAij5jbkcnmwa6Q0tNz0Jf2Xp6fhiQ4FTrE5j55nNmfcjIm9"
 access_token = "1456092689418514433-mviRAFruatdVhtGfeDK84SH6VORJTC"
 access_token_secret = "v36I2cY9NCvrDsdfvarBSl1OC7eV0QcflLTtCOjgzOpgR"
 
-# authorization process
 auth = tweepy.OAuthHandler(consumer_key, consumer_key_secret)
 auth.set_access_token(access_token, access_token_secret)
 api = tweepy.API(auth)
 
 api_twitter_api = TwitterAPI(consumer_key, consumer_key_secret, access_token, access_token_secret, api_version='2')
 
-names = ["raisa6690"]
-conv_id = ["1455498487987015682"]
+result = {}
+profile = {}
+final = {}
+
+parser = argparse.ArgumentParser(description='Get tweets from selected user')
+parser.add_argument('-u', '--username', help='Target username', required='-p' in sys.argv, type=str)
+parser.add_argument('-c', '--count', help='Amount of tweets to be crawled', required='-p' in sys.argv, type=int)
+parser.add_argument('-r', '--replies', help='Get replies based on tweet id', action='store_true')
+parser.add_argument('-i', '--id', help='Tweet id', type=str, required='-r' in sys.argv)
+parser.add_argument('-p', '--post', help='Get post', action='store_true')
+args = parser.parse_args()
 
 
-def generateToCSV():
-    user = api.get_user("jokowi")
-    follower = user.followers_count
+def get_tweets(username, count):
+    try:
+        print('Processing...')
+        user = api.get_user(screen_name=username)
+        followers = user.followers_count
+        following = user.friends_count
+        name = user.screen_name
+        desc = user.description
+        location = user.location
+        screen_name = user.screen_name
+
+        for tweets in tweepy.Cursor(api.user_timeline, screen_name=username, tweet_mode='extended').items(int(count)):
+            tweet_id = tweets.id_str
+            text = tweets.full_text
+            created = tweets.created_at
+            retweet_count = tweets.retweet_count
+            likes_count = tweets.favorite_count
+
+            result[tweet_id] = {
+                'Text': text,
+                'Retweet count': retweet_count,
+                'Likes count': likes_count,
+                'Date created': str(created)
+            }
+
+            insert_into_posts = "INSERT INTO post (screen_name, status_id, status_text, status_retweet_count, status_likes_count, status_created) VALUES (%s, %s, %s, %s, %s, %s)"
+            value_posts = (name, tweet_id, text, retweet_count, likes_count, str(created))
+            mycursor.execute(insert_into_posts, value_posts)
+            mydb.commit()
+
+        profile_output = {
+            'Name': name,
+            'Screen name': screen_name,
+            'Description': desc,
+            'Location': location,
+            'Followers': followers,
+            'Following': following,
+            'Status': result
+        }
+
+        json_result = json.dumps(profile_output, indent=4)
+
+        print('Done')
+        with open('result.json', 'w') as f:
+            return f.write(json_result)
+
+    except ValueError as e:
+        if e == 50:
+            print('User not found')
+            input('Press Enter to continue ')
+
+
+def get_profile(username):
+    user = api.get_user(screen_name=username)
+    followers = user.followers_count
     following = user.friends_count
     name = user.name
     desc = user.description
     location = user.location
     screen_name = user.screen_name
 
-    data = desc.replace("\n", " ")
-
-    strip_screen_name = screen_name.replace("\n", " ")
-    strip_description = desc.replace("\n", " ")
-    strip_location = location.replace("\n", " ")
-
-    data = [strip_screen_name, strip_description, strip_location, follower, following]
-
-    with open("twitter_profile.csv", "w", encoding="UTF8") as f:
-        writer = csv.writer(f)
-
-        writer.writerow(data)
+    insert_into_profile = "INSERT IGNORE INTO profile (screen_name, name, description, location, followers, following) VALUES (%s, %s, %s, %s, %s, %s)"
+    value_profile = (screen_name, name, desc, location, followers, following)
+    mycursor.execute(insert_into_profile, value_profile)
+    mydb.commit()
 
 
-def generatePostToCSV():
-    user = api.get_user("jokowi")
-    name = user.screen_name
-
-    for tweets in tweepy.Cursor(api.user_timeline, screen_name="jokowi", tweet_mode="extended").items(3200):
-        tweet_id = tweets.id_str
-        text = tweets.full_text
-        created = tweets.created_at
-        retweet_count = tweets.retweet_count
-        likes_count = tweets.favorite_count
-
-        strip_post = text.replace("\n", " ")
-
-        sql = "INSERT INTO post (screen_name, status_id, status_text, status_retweet_count, status_likes_count, status_created) VALUES (%s, %s, %s, %s, %s, %s)"
-        val = (name, tweet_id, strip_post, retweet_count, likes_count, str(created))
-        mycursor.execute(sql, val)
-        mydb.commit()
-        print(tweet_id)
-
-
+#  the function below are still work in progress
 def get_tweets_replies(conversation_id):
     convo_id = []
     try:
@@ -116,68 +146,19 @@ def get_tweets_replies(conversation_id):
         print(e)
 
 
-def update_urls(tweet, api, urls):
-    tweet_id = tweet.id
-    user_name = tweet.user.screen_name
-    max_id = None
-    replies = tweepy.Cursor(api.search, q='to:{}'.format(user_name),
-                            since_id=tweet_id, max_id=max_id, tweet_mode='extended').items()
-
-    for reply in replies:
-        if (reply.in_reply_to_status_id == tweet_id):
-            urls.append(get_twitter_url(user_name, reply.id))
-            try:
-                for reply_to_reply in update_urls(reply, api, urls):
-                    pass
-            except Exception:
-                pass
-        max_id = reply.id
-        print(urls)
-    return urls
-
-
-def get_api():
-    auth = tweepy.OAuthHandler(consumer_key, consumer_key_secret)
-    auth.set_access_token(access_token, access_token_secret)
-    api = tweepy.API(auth, wait_on_rate_limit=True)
-    return api
-
-
-def get_tweet(url):
-    tweet_id = url.split('/')[-1]
-    api = get_api()
-    tweet = api.get_status(tweet_id)
-    return tweet
-
-
-def get_twitter_url(user_name, status_id):
-    return "https://twitter.com/" + str(user_name) + "/status/" + str(status_id)
-
-
 def get_hashtags():
-    i = 0
-    for tweet in tweepy.Cursor(api.search, q="#NNN", count=100, lang="id").items(100):
-        i = i + 1
-        print("==============================================")
-        print(i)
+    for tweet in tweepy.Cursor(api.search, q="#gajayanmemanggil", count=100,
+                               lang="en",
+                               since="2017-04-03").items():
         print(tweet.created_at, tweet.text)
-        print("==============================================")
 
 
-if __name__ == "__main__":
-    get_tweets_replies("1455498487987015682")
-    # replies = reply_thread_maker(conv_id)
-    # replies.to_csv("replies.csv")
-    # replies = retrieve_replies("1455498487987015682")
-    # print(replies)
-    # replies.head()
-    # get_new_tweets(names)
-    # get_hashtags()
-    # generateToCSV()
-    # generatePostToCSV()
-    # get_tweets_replies()
-    # url = 'https://twitter.com/raisa6690/status/1401358780449783813'
-    # api = get_api()
-    # tweet = get_tweet(url)
-    # urls = [url]
-    # urls = update_urls(tweet, api, urls)
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        if args.replies and args.id:
+            get_tweets_replies(args.id)
+        elif args.post and args.username:
+            get_profile(args.username)
+            get_tweets(args.username, args.count)
+    else:
+        print("Cannot empty")
