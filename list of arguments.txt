@@ -1,0 +1,7 @@
+Twitter crawling argument:
+1. Posting crawling:
+	-p -u [username target tanpa @, contoh @jokowi -> jokowi] -c [jumlah yang akan di crawling, maks 3200]
+2. Replies crawling:
+	-r -i [tweet_id postingan]
+3. Hashtag crawling:
+	-ht -k [hashtag tanpa #, sementara masih cuman bisa diinputkan 1 dulu]

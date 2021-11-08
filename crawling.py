@@ -152,7 +152,7 @@ def get_tweets_replies(conversation_id):
 def get_hashtags(keyword, language):
     print("Retrieving hashtag...")
     for tweet in tweepy.Cursor(api.search_tweets, q="#{} -filter:retweets".format(keyword), lang=language,
-                               tweet_mode="extended", count=300).items(300):
+                               tweet_mode="extended").items():
         tweet_id = tweet.id
         hashtag_text = tweet.full_text
         likes_count = tweet.favorite_count
