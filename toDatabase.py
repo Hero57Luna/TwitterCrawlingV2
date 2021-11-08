@@ -31,10 +31,13 @@ final = {}
 
 parser = argparse.ArgumentParser(description='Get tweets from selected user')
 parser.add_argument('-u', '--username', help='Target username', required='-p' in sys.argv, type=str)
-parser.add_argument('-c', '--count', help='Amount of tweets to be crawled', required='-p' in sys.argv, type=int)
+parser.add_argument('-c', '--count', help='Amount of tweets to be crawled', required='-p' in sys.argv, type=str)
 parser.add_argument('-r', '--replies', help='Get replies based on tweet id', action='store_true')
 parser.add_argument('-i', '--id', help='Tweet id', type=str, required='-r' in sys.argv)
 parser.add_argument('-p', '--post', help='Get post', action='store_true')
+parser.add_argument('-k', '--keyword', help='Hashtag keyword', type=str, required='-ht' in sys.argv)
+parser.add_argument('-lang', '--language', help='Base language for hashtag', type=str, nargs="?", default="id")
+parser.add_argument('-ht', '--hashtag', help='Get hashtag', action='store_true')
 args = parser.parse_args()
 
 
@@ -146,11 +149,36 @@ def get_tweets_replies(conversation_id):
         print(e)
 
 
-def get_hashtags():
-    for tweet in tweepy.Cursor(api.search, q="#gajayanmemanggil", count=100,
-                               lang="en",
-                               since="2017-04-03").items():
-        print(tweet.created_at, tweet.text)
+def get_hashtags(keyword, language):
+    print("Retrieving hashtag...")
+    for tweet in tweepy.Cursor(api.search, q="#{} -filter:retweets".format(keyword), lang=language,
+                               tweet_mode="extended", count=100).items(100):
+        tweet_id = tweet.id
+        hashtag_text = tweet.full_text
+        likes_count = tweet.favorite_count
+        retweet_count = tweet.retweet_count
+        tweet_by = tweet.user.screen_name
+        date_created = tweet.created_at
+
+        insert_into_hashtag = "INSERT INTO hashtag " \
+                              "(tweet_id, text, likes_count, retweet_count, tweet_by, date_created) " \
+                              "VALUES (%s, %s, %s, %s, %s, %s)"
+
+        hashtag_values = (tweet_id, hashtag_text, likes_count, retweet_count, tweet_by, date_created)
+
+        mycursor.execute(insert_into_hashtag, hashtag_values)
+        mydb.commit()
+    print("Done")
+
+
+def get_replies_count():
+    replies_count = []
+    pager = TwitterPager(api_twitter_api, 'api.twitter.com',
+                        {'query': 'conversation_id:1453169971198976002', 'tweet.fields': 'public_metrics'})
+    replies_count.append(pager)
+    for page in pager.get_iterator(wait=5):
+        replies_count.append(page['id'])
+        print(page)
 
 
 if __name__ == '__main__':
@@ -160,5 +188,8 @@ if __name__ == '__main__':
         elif args.post and args.username:
             get_profile(args.username)
             get_tweets(args.username, args.count)
+        elif args.hashtag and args.keyword:
+            get_hashtags(args.keyword, args.language)
     else:
         print("Cannot empty")
+
